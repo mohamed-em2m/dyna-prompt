@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dynaprompt"
+version = "0.1.0"
+description = "A powerful, lazy-loading prompt configuration manager."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "Mohamed Emam" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "jinja2>=3.0.0",
+    "pyyaml>=6.0.0",
+    "tomli>=2.0.1; python_version < '3.11'",
+    "pydantic>=2.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mohamed-em2m/dynaprompt"
+Repository = "https://github.com/mohamed-em2m/dynaprompt"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.4.0",
+    "mypy>=1.0.0",
+    "build>=1.0.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["dynaprompt"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=dynaprompt --cov-report=term-missing"
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]

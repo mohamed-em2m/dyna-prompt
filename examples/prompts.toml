@@ -1,0 +1,15 @@
+[default.sentiment_analysis]
+model = "claude-3-opus"
+temperature = 0.2
+response_schema = "AnalysisSchema"
+template = """
+Analyze this text for sentiment:
+{{ text }}
+"""
+
+[production.sentiment_analysis]
+model = "gpt-4-turbo"
+
+[default.user_fetcher]
+response_schema = "UserProfile"
+template = "Fetch profile for user: {{ username }}"
