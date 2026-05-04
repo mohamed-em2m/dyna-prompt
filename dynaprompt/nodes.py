@@ -153,6 +153,26 @@ class PromptNode:
 
         context.update(self.bound_kwargs)
 
+        # Auto-serialize Pydantic models (classes or instances) to JSON
+        import inspect
+        import json
+        for k, v in list(context.items()):
+            if k in ("secrets", "env", "today", "current_env"):
+                continue
+            if inspect.isclass(v):
+                if hasattr(v, "model_json_schema"):
+                    context[k] = json.dumps(v.model_json_schema(), indent=2)
+                elif hasattr(v, "schema"):
+                    context[k] = json.dumps(v.schema(), indent=2)
+            else:
+                try:
+                    if hasattr(v, "model_dump_json"):
+                        context[k] = v.model_dump_json(indent=2)
+                    elif hasattr(v, "json") and callable(v.json):
+                        context[k] = v.json(indent=2)
+                except Exception:
+                    pass
+
         # 4. Render via Jinja2
         jinja_env = jinja2.Environment(undefined=jinja2.Undefined)
         try:
