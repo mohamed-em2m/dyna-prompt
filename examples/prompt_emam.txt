@@ -1,4 +1,0 @@
-hi {{ name }} 
-{{text}}
-{{env}}
-{{schema}}
