@@ -55,7 +55,7 @@ class _PromptSettings:
 
     def __init__(
         self,
-        settings_files: List[str],
+        settings_files: List[Any],
         current_env: str = "development",
         file_prefix: Optional[str] = None,
         schemas: Optional[Dict[str, Any]] = None,
@@ -84,7 +84,7 @@ class _PromptSettings:
 
     # ── Loading ───────────────────────────────────────────────────────────────
 
-    def _load_files(self, settings_files: List[str]) -> None:
+    def _load_files(self, settings_files: List[Any]) -> None:
         """Load all configured files/directories in order.
 
         Two-pass strategy
@@ -110,22 +110,31 @@ class _PromptSettings:
         auto-discovery is suppressed — the explicit entry is used instead.
         """
         # ── Pass 1: resolve paths, record explicitly-listed files ─────────────
-        resolved: List[pathlib.Path] = []
+        resolved_items: List[Any] = []
         explicit_files: set = set()
 
-        for file_str in settings_files:
-            path = pathlib.Path(file_str)
+        for item in settings_files:
+            if isinstance(item, dict):
+                resolved_items.append(item)
+                continue
+
+            path = pathlib.Path(item)
             if not path.is_absolute():
                 path = pathlib.Path.cwd() / path
-            # Use the canonical form so comparison is reliable regardless of
-            # how the user spelled the path (relative, trailing slash, symlink…)
+            # Use the canonical form so comparison is reliable
             path = path.resolve()
-            resolved.append(path)
+            resolved_items.append(path)
             if not path.is_dir():
                 explicit_files.add(path)
 
         # ── Pass 2: load ───────────────────────────────────────────────────────
-        for path in resolved:
+        for idx, item in enumerate(resolved_items):
+            if isinstance(item, dict):
+                container_key = f"settings_dict_{idx}"
+                self._register_dict_as_variables(item, container_key, "settings")
+                continue
+
+            path = item
             if path.is_dir():
                 self._load_dir(path)
 
@@ -194,11 +203,32 @@ class _PromptSettings:
         source_tag: str,
     ) -> None:
         """Register *data* as a whole under *container_key* AND each element separately."""
+        # Handle environment layering if present
+        is_env_layered = (
+            "default" in data
+            and isinstance(data["default"], dict)
+        )
+        
+        if is_env_layered:
+            # Merge 'default' and the current environment key
+            final_data: Dict[str, Any] = {}
+            object_merge(final_data, data.get("default", {}))
+            env_data = data.get(self._current_env)
+            if isinstance(env_data, dict):
+                object_merge(final_data, env_data)
+            data = final_data
+
         # 1. Whole object under container key
         self._merge_var(container_key, data, source_tag)
-        # 2. Each element separately
-        for k, v in data.items():
-            self._merge_var(k, v, source_tag)
+        
+        # 2. Each element separately (recursively if dict)
+        def _flatten(d: Dict[str, Any]) -> None:
+            for k, v in d.items():
+                self._merge_var(k, v, source_tag)
+                if isinstance(v, dict):
+                    _flatten(v)
+
+        _flatten(data)
 
     def _load_variables(self, variables: Optional[List[Any]]) -> None:
         """Load and merge global template variables from files or dicts.
@@ -567,6 +597,7 @@ class _PromptSettings:
             validators=self._validators,
             hooks=self._hooks,
             current_env=self._current_env,
+            auto_render=self._auto_render,
         )
 
         # Cache the node
@@ -617,7 +648,7 @@ class DynaPrompt:
 
     def __init__(
         self,
-        settings_files: List[str],
+        settings_files: List[Any],
         environments: bool = True,
         env: Optional[str] = None,
         validators: Optional[List[PromptValidator]] = None,

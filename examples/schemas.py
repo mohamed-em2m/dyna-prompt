@@ -10,7 +10,7 @@ class UserProfile(BaseModel):
     username: str
     is_active: bool
 
-class CustomerServiceSchema(BaseModel):
+class MediaBuyerSchema(BaseModel):
     campaign_structure: dict
     ad_copies: list[str]
     creative_ideas: list[str]

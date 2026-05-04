@@ -1,8 +1,27 @@
 {
     "type": "object",
     "properties": {
-        "status": { "type": "string" },
-        "code": { "type": "integer" }
+        "summary": {
+            "type": "string"
+        },
+        "topics": {
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "sentiment": {
+            "type": "string",
+            "enum": [
+                "Positive",
+                "Negative",
+                "Neutral"
+            ]
+        }
     },
-    "required": ["status", "code"]
+    "required": [
+        "summary",
+        "topics",
+        "sentiment"
+    ]
 }

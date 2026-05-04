@@ -53,6 +53,8 @@ class RenderedPrompt:
         """Returns the response_schema as a JSON Schema dictionary."""
         if not self.response_schema:
             return {}
+        if isinstance(self.response_schema, dict):
+            return self.response_schema
         try:
             return self.response_schema.model_json_schema()
         except AttributeError:
@@ -85,6 +87,7 @@ class PromptNode:
         validators: ValidatorList = None,
         hooks: Dict[str, list] = None,
         current_env: str = "default",
+        auto_render: bool = False,
     ):
         self.name = name
         self.text = text
@@ -96,8 +99,83 @@ class PromptNode:
         self._validators = validators or ValidatorList()
         self._hooks = hooks or {}
         self._current_env = current_env
+        self._auto_render = auto_render
         self._overrides: Dict[str, Any] = {}
         self.bound_kwargs: Dict[str, Any] = {}
+
+        if self._auto_render:
+            context = self._build_render_context()
+            jinja_env = jinja2.Environment(undefined=jinja2.DebugUndefined)
+            try:
+                self.text = jinja_env.from_string(self.text).render(**context)
+            except Exception as exc:
+                import warnings
+                warnings.warn(
+                    f"DynaPrompt: Failed to auto-render prompt '{self.name}': {exc}",
+                    UserWarning,
+                    stacklevel=2,
+                )
+
+    def _build_render_context(self, extra_kwargs: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Build the full Jinja2 rendering context including secrets, env, globals, metadata, and schemas."""
+        extra_kwargs = extra_kwargs or {}
+        context = {
+            "secrets": SecretStore(),
+            "env": os.environ.get,
+            "today": datetime.date.today().isoformat(),
+            "current_env": self._current_env,
+        }
+
+        def inject_and_flatten(source_dict):
+            if not source_dict:
+                return
+            context.update(source_dict)
+            for vkey in ("variables", "vars"):
+                if vkey in source_dict and isinstance(source_dict[vkey], dict):
+                    # Recursive flatten of this specific source's variables
+                    def flatten(d):
+                        for k, v in d.items():
+                            context[k] = v
+                            if isinstance(v, dict):
+                                flatten(v)
+                    flatten(source_dict[vkey])
+
+        # 1. Global variables
+        inject_and_flatten(self.variables)
+
+        # 2. Prompt metadata (frontmatter)
+        inject_and_flatten(self.metadata)
+
+        # 3. Render-time keyword arguments
+        inject_and_flatten(extra_kwargs)
+
+        # Auto-inject JSON schema if a response_schema was resolved
+        if self.response_schema:
+            context["response_schema"] = self.schema_json
+
+        # Auto-serialize Pydantic models (classes or instances) to JSON
+        import inspect
+        import json
+        for k, v in list(context.items()):
+            if k in ("secrets", "env", "today", "current_env"):
+                continue
+            if inspect.isclass(v):
+                if hasattr(v, "model_json_schema"):
+                    context[k] = json.dumps(v.model_json_schema(), indent=2)
+                elif hasattr(v, "schema"):
+                    context[k] = json.dumps(v.schema(), indent=2)
+            else:
+                try:
+                    if hasattr(v, "model_dump_json"):
+                        context[k] = v.model_dump_json(indent=2)
+                    elif hasattr(v, "json") and callable(v.json):
+                        context[k] = v.json(indent=2)
+                    elif isinstance(v, (dict, list)) and ("schema" in k.lower() or "json" in k.lower()):
+                        context[k] = json.dumps(v, indent=2)
+                except Exception:
+                    pass
+                    
+        return context
 
     # ─── Fluent API ───────────────────────────────────────────────────────────
 
@@ -137,41 +215,7 @@ class PromptNode:
             template_str = template_str.replace("{{ super() }}", self._parent_template)
 
         # 3. Build Jinja2 rendering context
-        context = {
-            "secrets": SecretStore(),
-            "env": os.environ.get,
-            "today": datetime.date.today().isoformat(),
-            "current_env": self._current_env,
-        }
-
-        # Auto-inject global variables
-        context.update(self.variables)
-
-        # Auto-inject JSON schema if a response_schema was resolved
-        if self.response_schema:
-            context["response_schema"] = self.schema_json
-
-        context.update(self.bound_kwargs)
-
-        # Auto-serialize Pydantic models (classes or instances) to JSON
-        import inspect
-        import json
-        for k, v in list(context.items()):
-            if k in ("secrets", "env", "today", "current_env"):
-                continue
-            if inspect.isclass(v):
-                if hasattr(v, "model_json_schema"):
-                    context[k] = json.dumps(v.model_json_schema(), indent=2)
-                elif hasattr(v, "schema"):
-                    context[k] = json.dumps(v.schema(), indent=2)
-            else:
-                try:
-                    if hasattr(v, "model_dump_json"):
-                        context[k] = v.model_dump_json(indent=2)
-                    elif hasattr(v, "json") and callable(v.json):
-                        context[k] = v.json(indent=2)
-                except Exception:
-                    pass
+        context = self._build_render_context(self.bound_kwargs)
 
         # 4. Render via Jinja2
         jinja_env = jinja2.Environment(undefined=jinja2.Undefined)
@@ -222,6 +266,8 @@ class PromptNode:
         """Returns the response_schema as a JSON Schema dictionary."""
         if not self.response_schema:
             return {}
+        if isinstance(self.response_schema, dict):
+            return self.response_schema
         try:
             return self.response_schema.model_json_schema()
         except AttributeError:
