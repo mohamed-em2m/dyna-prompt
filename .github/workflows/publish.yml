@@ -8,25 +8,26 @@ on:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    environment: pypi # CHANGE THIS TO MATCH YOUR PYPI ENVIRONMENT
     permissions:
-      id-token: write  # IMPORTANT: this permission is required for trusted publishing
+      id-token: write # IMPORTANT: this permission is required for trusted publishing
       contents: read
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
 
-    - name: Build package
-      run: uv build
+      - name: Build package
+        run: uv build
 
-    - name: Publish to PyPI
-      run: uv publish
+      - name: Publish to PyPI
+        run: uv publish
