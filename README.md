@@ -1,4 +1,4 @@
-<p align="center"><img src="/art/dynaprompt .png" alt="dynaprompt  logo"></p>
+<p align="center"><img src="/art/dynaprompt.png" alt="dynaprompt  logo"></p>
 
 > **dynaprompt ** - Lazy-loading prompt configuration manager built directly on Dynaconf's principles.
 
