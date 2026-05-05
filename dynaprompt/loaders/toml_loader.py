@@ -16,15 +16,16 @@ Expected file structure::
     model = "gpt-4.1-mini"
     temperature = 0.7
 """
+
 from __future__ import annotations
 
 import pathlib
-from typing import Any, Dict
+from typing import Any
 
 from .base import PromptLoader
 
 try:
-    import tomllib          # Python 3.11+
+    import tomllib  # Python 3.11+
 except ImportError:
     try:
         import tomli as tomllib  # pip install tomli for < 3.11
@@ -36,7 +37,7 @@ class TomlLoader(PromptLoader):
     def can_handle(self, path: pathlib.Path) -> bool:
         return path.suffix in (".toml",)
 
-    def load(self, path: pathlib.Path) -> Dict[str, Dict[str, Any]]:
+    def load(self, path: pathlib.Path) -> dict[str, dict[str, Any]]:
         if tomllib is None:
             raise ImportError(
                 "TOML support requires Python 3.11+ or `pip install tomli`"
@@ -47,7 +48,7 @@ class TomlLoader(PromptLoader):
 
         # raw = {'default': {'customer_support': {...}}, 'production': {...}}
         # Validate the top-level keys are env names
-        result: Dict[str, Dict[str, Any]] = {}
+        result: dict[str, dict[str, Any]] = {}
         for env_key, prompts in raw.items():
             if not isinstance(prompts, dict):
                 continue

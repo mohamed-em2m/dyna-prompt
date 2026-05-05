@@ -1,13 +1,14 @@
 """Loader registry — maps file extensions to loader instances."""
+
 from __future__ import annotations
 
 import pathlib
 
-from .toml_loader import TomlLoader
-from .markdown_loader import MarkdownLoader
-from .json_loader import JsonLoader
-from .yaml_loader import YamlLoader
 from .base import PromptLoader
+from .json_loader import JsonLoader
+from .markdown_loader import MarkdownLoader
+from .toml_loader import TomlLoader
+from .yaml_loader import YamlLoader
 
 # Registry: ordered list of available loaders
 _LOADERS = [
@@ -34,4 +35,10 @@ def register_loader(loader: PromptLoader) -> None:
     _LOADERS.insert(0, loader)
 
 
-__all__ = ["get_loader_for", "register_loader", "PromptLoader", "TomlLoader", "MarkdownLoader"]
+__all__ = [
+    "get_loader_for",
+    "register_loader",
+    "PromptLoader",
+    "TomlLoader",
+    "MarkdownLoader",
+]

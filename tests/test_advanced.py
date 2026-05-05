@@ -1,19 +1,19 @@
 """
 Tests for validators, hooks, inspect/history, reload, and RenderedPrompt helpers.
 """
+
 from __future__ import annotations
 
-import pathlib
 import pytest
 
 from dynaprompt import DynaPrompt
-from dynaprompt.nodes import PromptNode, RenderedPrompt
+from dynaprompt.nodes import RenderedPrompt
 from dynaprompt.validator import PromptValidator
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Validators
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestValidators:
     def test_validator_passes(self, md_prompt):
@@ -46,6 +46,7 @@ class TestValidators:
 # ──────────────────────────────────────────────────────────────────────────────
 # Hooks
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestHooks:
     def test_after_render_hook(self, md_prompt):
@@ -82,6 +83,7 @@ class TestHooks:
 # Inspect / history
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestInspect:
     def test_inspect_returns_dict(self, md_prompt):
         dp = DynaPrompt(settings_files=[str(md_prompt)])
@@ -105,19 +107,16 @@ class TestInspect:
 # Reload
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestReload:
     def test_reload_picks_up_changes(self, tmp_path):
         prompt = tmp_path / "dynamic.md"
-        prompt.write_text(
-            "---\nmodel: gpt-3.5\n---\nVersion 1", encoding="utf-8"
-        )
+        prompt.write_text("---\nmodel: gpt-3.5\n---\nVersion 1", encoding="utf-8")
         dp = DynaPrompt(settings_files=[str(prompt)])
         assert "Version 1" in dp.dynamic.render().text
 
         # Update the file
-        prompt.write_text(
-            "---\nmodel: gpt-4\n---\nVersion 2", encoding="utf-8"
-        )
+        prompt.write_text("---\nmodel: gpt-4\n---\nVersion 2", encoding="utf-8")
         dp.reload()
         assert "Version 2" in dp.dynamic.render().text
         assert dp.dynamic.render().config["model"] == "gpt-4"
@@ -126,6 +125,7 @@ class TestReload:
 # ──────────────────────────────────────────────────────────────────────────────
 # RenderedPrompt helpers
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestRenderedPromptHelpers:
     def test_schema_dict_empty_without_schema(self, md_prompt):
@@ -175,6 +175,7 @@ class TestRenderedPromptHelpers:
 # ──────────────────────────────────────────────────────────────────────────────
 # Name sanitisation
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestNameSanitisation:
     def test_spaces_become_underscores(self, tmp_path):

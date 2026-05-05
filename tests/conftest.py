@@ -4,6 +4,7 @@ Shared pytest fixtures for the DynaPrompt test suite.
 All temporary files are created via `tmp_path` (pytest's built-in fixture)
 so they are cleaned up automatically after each test.
 """
+
 from __future__ import annotations
 
 import json
@@ -12,10 +13,10 @@ import textwrap
 
 import pytest
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # File fixtures
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def md_prompt(tmp_path: pathlib.Path) -> pathlib.Path:

@@ -3,18 +3,17 @@ Tests for the variables= parameter and _load_variables_file internals.
 Covers: dicts, JSON, YAML, TOML, Python files, collision namespacing,
 and auto-injection into render context.
 """
+
 from __future__ import annotations
 
-import json
-import pathlib
 import pytest
 
 from dynaprompt import DynaPrompt
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Dict variables
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestDictVariables:
     def test_dict_keys_available(self, toml_prompts):
@@ -57,6 +56,7 @@ class TestDictVariables:
 # ──────────────────────────────────────────────────────────────────────────────
 # File-based variables
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestJsonVariables:
     def test_json_file_keys_available(self, toml_prompts, json_vars):
@@ -137,6 +137,7 @@ class TestPythonFileVariables:
 # Collision handling
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestCollisionHandling:
     def test_collision_namespaced(self, toml_prompts):
         with pytest.warns(UserWarning):
@@ -150,8 +151,8 @@ class TestCollisionHandling:
             dp.inspect()
 
         vars_ = dp._wrapped._variables
-        assert vars_["status"] == "active"           # first wins
-        assert vars_["status_dict"] == "pending"     # second namespaced
+        assert vars_["status"] == "active"  # first wins
+        assert vars_["status_dict"] == "pending"  # second namespaced
 
     def test_collision_warning_message(self, toml_prompts):
         with pytest.warns(UserWarning, match="'status' already exists"):
@@ -173,6 +174,7 @@ class TestCollisionHandling:
 # ──────────────────────────────────────────────────────────────────────────────
 # Auto-injection into render context
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestVariableInjectionIntoRender:
     def test_dict_var_injected(self, tmp_path):
@@ -202,9 +204,7 @@ class TestVariableInjectionIntoRender:
     def test_render_kwarg_overrides_injected_var(self, tmp_path):
         """Explicit render(name=...) should win over an injected variable."""
         prompt = tmp_path / "greet.md"
-        prompt.write_text(
-            "---\nmodel: gpt-4\n---\nHi {{ name }}", encoding="utf-8"
-        )
+        prompt.write_text("---\nmodel: gpt-4\n---\nHi {{ name }}", encoding="utf-8")
         dp = DynaPrompt(
             settings_files=[str(prompt)],
             variables=[{"name": "FromVars"}],
@@ -217,6 +217,7 @@ class TestVariableInjectionIntoRender:
 # ──────────────────────────────────────────────────────────────────────────────
 # Auto-render (nested variables)
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestAutoRenderVariables:
     def test_variables_reference_each_other(self):

@@ -1,9 +1,9 @@
 """Utility functions — object_merge and inspect_prompts."""
+
 from __future__ import annotations
 
-import sys
 import json
-from typing import Any, Dict, Optional
+import sys
 
 
 def object_merge(base: dict, override: dict) -> None:
@@ -13,11 +13,7 @@ def object_merge(base: dict, override: dict) -> None:
     Inspired by Dynaconf's object_merge utility.
     """
     for key, value in override.items():
-        if (
-            key in base
-            and isinstance(base[key], dict)
-            and isinstance(value, dict)
-        ):
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
             object_merge(base[key], value)
         else:
             base[key] = value
@@ -25,9 +21,9 @@ def object_merge(base: dict, override: dict) -> None:
 
 def inspect_prompts(
     prompts,
-    key: Optional[str] = None,
+    key: str | None = None,
     print_report: bool = True,
-    to_file: Optional[str] = None,
+    to_file: str | None = None,
 ) -> dict:
     """
     Print or return the loading history of a DynaPrompt instance.

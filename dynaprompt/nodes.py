@@ -1,22 +1,24 @@
 """PromptNode and RenderedPrompt — the core data nodes."""
+
 from __future__ import annotations
 
 import datetime
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple, Type
+from typing import Any
 
 import jinja2
 from pydantic import BaseModel
 
+from .hooking import hookable
 from .secrets import SecretStore
 from .validator import ValidatorList
-from .hooking import hookable
 
 
 @dataclass
 class SourceMetadata:
     """Tracks where a prompt was loaded from — for audit and rollback."""
+
     loader: str
     identifier: str
     env: str = "default"
@@ -36,10 +38,11 @@ class SourceMetadata:
 @dataclass
 class RenderedPrompt:
     """The final output of PromptNode.render() — fully interpolated text + config."""
+
     text: str
-    config: Dict[str, Any]
-    response_schema: Optional[Type[BaseModel]] = None
-    source_history: List[Tuple] = field(default_factory=list)
+    config: dict[str, Any]
+    response_schema: type[BaseModel] | None = None
+    source_history: list[tuple] = field(default_factory=list)
 
     def __str__(self) -> str:
         return self.text
@@ -66,6 +69,7 @@ class RenderedPrompt:
     def schema_json(self) -> str:
         """Returns the response_schema as a formatted JSON Schema string."""
         import json
+
         return json.dumps(self.schema_dict, indent=2)
 
 
@@ -79,13 +83,13 @@ class PromptNode:
         self,
         name: str,
         text: str,
-        metadata: Dict[str, Any] = None,
-        response_schema: Optional[Type[BaseModel]] = None,
-        parent_template: Optional[str] = None,
-        history: List[Tuple] = None,
-        variables: Dict[str, Any] = None,
+        metadata: dict[str, Any] = None,
+        response_schema: type[BaseModel] | None = None,
+        parent_template: str | None = None,
+        history: list[tuple] = None,
+        variables: dict[str, Any] = None,
         validators: ValidatorList = None,
-        hooks: Dict[str, list] = None,
+        hooks: dict[str, list] = None,
         current_env: str = "default",
         auto_render: bool = False,
     ):
@@ -100,8 +104,8 @@ class PromptNode:
         self._hooks = hooks or {}
         self._current_env = current_env
         self._auto_render = auto_render
-        self._overrides: Dict[str, Any] = {}
-        self.bound_kwargs: Dict[str, Any] = {}
+        self._overrides: dict[str, Any] = {}
+        self.bound_kwargs: dict[str, Any] = {}
 
         if self._auto_render:
             context = self._build_render_context()
@@ -110,14 +114,19 @@ class PromptNode:
                 self.text = jinja_env.from_string(self.text).render(**context)
             except Exception as exc:
                 import warnings
+
                 warnings.warn(
                     f"DynaPrompt: Failed to auto-render prompt '{self.name}': {exc}",
                     UserWarning,
                     stacklevel=2,
                 )
 
-    def _build_render_context(self, extra_kwargs: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Build the full Jinja2 rendering context including secrets, env, globals, metadata, and schemas."""
+    def _build_render_context(
+        self, extra_kwargs: dict[str, Any] = None
+    ) -> dict[str, Any]:
+        """Build the full Jinja2 rendering context including secrets, env,
+        globals, metadata, and schemas.
+        """
         extra_kwargs = extra_kwargs or {}
         context = {
             "secrets": SecretStore(),
@@ -138,6 +147,7 @@ class PromptNode:
                             context[k] = v
                             if isinstance(v, dict):
                                 flatten(v)
+
                     flatten(source_dict[vkey])
 
         # 1. Global variables
@@ -156,6 +166,7 @@ class PromptNode:
         # Auto-serialize Pydantic models (classes or instances) to JSON
         import inspect
         import json
+
         for k, v in list(context.items()):
             if k in ("secrets", "env", "today", "current_env"):
                 continue
@@ -170,28 +181,30 @@ class PromptNode:
                         context[k] = v.model_dump_json(indent=2)
                     elif hasattr(v, "json") and callable(v.json):
                         context[k] = v.json(indent=2)
-                    elif isinstance(v, (dict, list)) and ("schema" in k.lower() or "json" in k.lower()):
+                    elif isinstance(v, (dict, list)) and (
+                        "schema" in k.lower() or "json" in k.lower()
+                    ):
                         context[k] = json.dumps(v, indent=2)
                 except Exception:
                     pass
-                    
+
         return context
 
     # ─── Fluent API ───────────────────────────────────────────────────────────
 
-    def with_model(self, model: str) -> "PromptNode":
+    def with_model(self, model: str) -> PromptNode:
         self._overrides["model"] = model
         return self
 
-    def with_temperature(self, temperature: float) -> "PromptNode":
+    def with_temperature(self, temperature: float) -> PromptNode:
         self._overrides["temperature"] = temperature
         return self
 
-    def with_max_tokens(self, max_tokens: int) -> "PromptNode":
+    def with_max_tokens(self, max_tokens: int) -> PromptNode:
         self._overrides["max_tokens"] = max_tokens
         return self
 
-    def with_schema(self, schema: Type[BaseModel]) -> "PromptNode":
+    def with_schema(self, schema: type[BaseModel]) -> PromptNode:
         self.response_schema = schema
         return self
 
@@ -205,9 +218,11 @@ class PromptNode:
         Maintains state of previously passed kwargs in `self.bound_kwargs`.
         """
         self.bound_kwargs.update(kwargs)
-        
+
         # 1. Run validators (raises ValidationError on failure)
-        self._validators.validate(self, self.bound_kwargs, current_env=self._current_env)
+        self._validators.validate(
+            self, self.bound_kwargs, current_env=self._current_env
+        )
 
         # 2. Resolve inheritance: replace {{ super() }} before Jinja2
         template_str = self.text
@@ -222,9 +237,7 @@ class PromptNode:
         try:
             rendered_text = jinja_env.from_string(template_str).render(**context)
         except Exception as exc:
-            raise RuntimeError(
-                f"Failed to render prompt '{self.name}': {exc}"
-            ) from exc
+            raise RuntimeError(f"Failed to render prompt '{self.name}': {exc}") from exc
 
         # 5. Run after_render hooks (can mutate the RenderedPrompt object) via @hookable
         final_config = {**self.metadata, **self._overrides}
@@ -237,7 +250,7 @@ class PromptNode:
 
     def rerender(self, **kwargs) -> RenderedPrompt:
         """
-        Alias for render(). Useful for explicitly updating a subset of previously 
+        Alias for render(). Useful for explicitly updating a subset of previously
         provided variables while retaining the rest.
         """
         return self.render(**kwargs)
@@ -250,7 +263,9 @@ class PromptNode:
         rendered = self.render(**kwargs)
         model = rendered.config.get("model", "unknown-model")
         # Placeholder — future: dispatch to openai/anthropic/gemini
-        print(f"[DynaPrompt] Would invoke '{model}' with prompt: {rendered.text[:60]}...")
+        print(
+            f"[DynaPrompt] Would invoke '{model}' with prompt: {rendered.text[:60]}..."
+        )
         return rendered
 
     def __repr__(self) -> str:
@@ -279,4 +294,5 @@ class PromptNode:
     def schema_json(self) -> str:
         """Returns the response_schema as a formatted JSON Schema string."""
         import json
+
         return json.dumps(self.schema_dict, indent=2)

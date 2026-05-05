@@ -1,9 +1,10 @@
 """Loader plugin interface."""
+
 from __future__ import annotations
 
 import pathlib
 from abc import ABC, abstractmethod
-from typing import Dict, Any
+from typing import Any
 
 
 class PromptLoader(ABC):
@@ -14,7 +15,7 @@ class PromptLoader(ABC):
     """
 
     @abstractmethod
-    def load(self, path: pathlib.Path) -> Dict[str, Dict[str, Any]]:
+    def load(self, path: pathlib.Path) -> dict[str, dict[str, Any]]:
         """Load and parse the file. Returns {env: {name: data}}."""
         raise NotImplementedError
 

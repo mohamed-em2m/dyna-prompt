@@ -1,10 +1,13 @@
 """Secret injection at render time — never stored in files."""
+
 from __future__ import annotations
+
 import os
 
 
 class MissingSecretError(Exception):
     """Raised when a prompt template requires a secret not found in the environment."""
+
     pass
 
 

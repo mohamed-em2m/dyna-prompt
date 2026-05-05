@@ -18,12 +18,14 @@ Expected file format::
     {% endif %}
 
 The filename (without extension) becomes the prompt name.
-The `env:` frontmatter key controls which environment bucket it lands in (default: "default").
+The `env:` frontmatter key controls which environment bucket it lands in
+(default: "default").
 """
+
 from __future__ import annotations
 
 import pathlib
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -34,7 +36,7 @@ class MarkdownLoader(PromptLoader):
     def can_handle(self, path: pathlib.Path) -> bool:
         return path.suffix in (".md", ".txt")
 
-    def load(self, path: pathlib.Path) -> Dict[str, Dict[str, Any]]:
+    def load(self, path: pathlib.Path) -> dict[str, dict[str, Any]]:
         """
         Load a single .md file.
         Returns {env: {prompt_name: {template: ..., **frontmatter}}}.

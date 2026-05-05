@@ -1,14 +1,12 @@
 """
 Tests for automatic schema loading from .py and .json/.yaml files.
 """
+
 from __future__ import annotations
 
-import json
-import pathlib
-import pytest
+from pydantic import BaseModel
 
 from dynaprompt import DynaPrompt
-from pydantic import BaseModel
 
 
 class TestPythonSchemaLoading:

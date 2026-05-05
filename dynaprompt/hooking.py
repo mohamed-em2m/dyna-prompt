@@ -1,4 +1,5 @@
 """Lifecycle hooks — inspired by Dynaconf's hookable/post_hook pattern."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,6 +10,7 @@ from typing import Any, Callable
 @dataclass
 class Hook:
     """Wraps a callable for a lifecycle event."""
+
     function: Callable
 
     def __repr__(self):
@@ -17,6 +19,7 @@ class Hook:
 
 class HookValue:
     """Wrapper around a value passed between hooks — same pattern as Dynaconf."""
+
     def __init__(self, value: Any):
         self.value = value
 
@@ -80,6 +83,7 @@ def hookable(function=None, name: str = None):
         @wraps(function)
         def wrapper(*args, **kwargs):
             return dispatch(function, *args, **kwargs)
+
         return wrapper
 
     # Used as @hookable(name='...')
@@ -87,6 +91,7 @@ def hookable(function=None, name: str = None):
         @wraps(fn)
         def wrapper(*args, **kwargs):
             return dispatch(fn, *args, **kwargs)
+
         return wrapper
 
     return decorator

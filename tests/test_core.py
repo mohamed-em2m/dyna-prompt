@@ -1,18 +1,18 @@
 """
 Tests for core DynaPrompt loading, rendering, and environment switching.
 """
+
 from __future__ import annotations
 
-import pathlib
 import pytest
 
 from dynaprompt import DynaPrompt
 from dynaprompt.nodes import PromptNode, RenderedPrompt
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # Basic loading
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestMarkdownLoading:
     def test_loads_md_prompt(self, md_prompt):
@@ -79,6 +79,7 @@ class TestDirectoryLoading:
 # Environment layering
 # ──────────────────────────────────────────────────────────────────────────────
 
+
 class TestEnvironments:
     def test_default_env(self, toml_prompts):
         dp = DynaPrompt(settings_files=[str(toml_prompts)], env="development")
@@ -110,6 +111,7 @@ class TestEnvironments:
 # ──────────────────────────────────────────────────────────────────────────────
 # Attribute access and __dir__
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestAttributeAccess:
     def test_getattr_prompt(self, md_prompt):
@@ -148,6 +150,7 @@ class TestAttributeAccess:
 # ──────────────────────────────────────────────────────────────────────────────
 # Fluent API on PromptNode
 # ──────────────────────────────────────────────────────────────────────────────
+
 
 class TestPromptNodeFluentAPI:
     def test_with_model(self, md_prompt):

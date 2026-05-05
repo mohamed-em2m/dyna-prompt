@@ -1,7 +1,9 @@
 """Declarative validation for prompt variables — inspired by Dynaconf's Validator."""
+
 from __future__ import annotations
 
-from typing import Any, Callable, List, Optional, Sequence
+from collections.abc import Sequence
+from typing import Callable
 
 
 class ValidationError(Exception):
@@ -30,11 +32,11 @@ class PromptValidator:
     def __init__(
         self,
         *names: str,
-        requires: List[str] = None,
-        max_tokens: Optional[int] = None,
+        requires: list[str] = None,
+        max_tokens: int | None = None,
         response_schema=None,
-        condition: Optional[Callable] = None,
-        when: Optional["PromptValidator"] = None,
+        condition: Callable | None = None,
+        when: PromptValidator | None = None,
         env: str | Sequence[str] | None = None,
         description: str = None,
     ):
@@ -52,10 +54,10 @@ class PromptValidator:
         else:
             self.envs = []
 
-    def __or__(self, other: "PromptValidator") -> "OrValidator":
+    def __or__(self, other: PromptValidator) -> OrValidator:
         return OrValidator(self, other)
 
-    def __and__(self, other: "PromptValidator") -> "AndValidator":
+    def __and__(self, other: PromptValidator) -> AndValidator:
         return AndValidator(self, other)
 
     def __repr__(self):
@@ -155,7 +157,7 @@ class ValidatorList(list):
         kwargs: dict,
         current_env: str = "default",
         raise_error: bool = True,
-    ) -> List[ValidationError]:
+    ) -> list[ValidationError]:
         errors = []
         for v in self:
             try:
@@ -163,7 +165,5 @@ class ValidatorList(list):
             except ValidationError as e:
                 errors.append(e)
         if errors and raise_error:
-            raise ValidationError(
-                "; ".join(str(e) for e in errors), details=errors
-            )
+            raise ValidationError("; ".join(str(e) for e in errors), details=errors)
         return errors

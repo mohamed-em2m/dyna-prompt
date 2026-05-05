@@ -5,6 +5,7 @@ Inspired by Dynaconf's LazySettings / Settings separation:
 - DynaPrompt is the lazy shell (no I/O at creation time).
 - _PromptSettings is the real loaded object, instantiated on first access.
 """
+
 from __future__ import annotations
 
 import os
@@ -12,13 +13,13 @@ import pathlib
 import re
 import warnings
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
-from .nodes import PromptNode, SourceMetadata
-from .validator import ValidatorList, PromptValidator
 from .hooking import Hook
-from .utils import object_merge
 from .loaders import get_loader_for
+from .nodes import PromptNode, SourceMetadata
+from .utils import object_merge
+from .validator import PromptValidator, ValidatorList
 
 _SUPPORTED_SUFFIXES = (".toml", ".md", ".txt", ".py", ".json", ".yaml", ".yml")
 
@@ -45,8 +46,6 @@ def _sanitize_name(stem: str) -> str:
     return name
 
 
-
-
 class _PromptSettings:
     """
     The real settings object. Loads files once, resolves env layers,
@@ -55,27 +54,27 @@ class _PromptSettings:
 
     def __init__(
         self,
-        settings_files: List[Any],
+        settings_files: list[Any],
         current_env: str = "development",
-        file_prefix: Optional[str] = None,
-        schemas: Optional[Dict[str, Any]] = None,
-        variables: Optional[List[Any]] = None,
+        file_prefix: str | None = None,
+        schemas: dict[str, Any] | None = None,
+        variables: list[Any] | None = None,
         auto_render: bool = False,
     ):
         self._current_env = current_env
         self._file_prefix = file_prefix
         self._auto_render = auto_render
         self._schemas = schemas if schemas is not None else {}
-        self._variables: Dict[str, Any] = {}
+        self._variables: dict[str, Any] = {}
         # {env: {name: data_dict}} — raw accumulated from all files
-        self._raw_data: Dict[str, Dict[str, Any]] = {}
+        self._raw_data: dict[str, dict[str, Any]] = {}
         # {name: merged_data} — resolved for current env (rebuilt on env switch)
-        self._store: Dict[str, Any] = {}
+        self._store: dict[str, Any] = {}
         # {name: [(SourceMetadata, raw_data_dict), ...]}
-        self._history: Dict[str, list] = {}
+        self._history: dict[str, list] = {}
         self._validators = ValidatorList()
-        self._hooks: Dict[str, List[Hook]] = {}
-        self._cache: Dict[str, PromptNode] = {}
+        self._hooks: dict[str, list[Hook]] = {}
+        self._cache: dict[str, PromptNode] = {}
         self._cache_enabled = True
 
         self._load_variables(variables)
@@ -84,7 +83,7 @@ class _PromptSettings:
 
     # ── Loading ───────────────────────────────────────────────────────────────
 
-    def _load_files(self, settings_files: List[Any]) -> None:
+    def _load_files(self, settings_files: list[Any]) -> None:
         """Load all configured files/directories in order.
 
         Two-pass strategy
@@ -110,7 +109,7 @@ class _PromptSettings:
         auto-discovery is suppressed — the explicit entry is used instead.
         """
         # ── Pass 1: resolve paths, record explicitly-listed files ─────────────
-        resolved_items: List[Any] = []
+        resolved_items: list[Any] = []
         explicit_files: set = set()
 
         for item in settings_files:
@@ -166,21 +165,25 @@ class _PromptSettings:
         if self._auto_render and isinstance(value, str) and "{{" in value:
             try:
                 import jinja2
+
                 jinja_env = jinja2.Environment(undefined=jinja2.Undefined)
                 value = jinja_env.from_string(value).render(**self._variables)
             except Exception as e:
                 warnings.warn(
                     f"DynaPrompt: Failed to auto-render variable '{key}': {e}",
                     UserWarning,
-                    stacklevel=5
+                    stacklevel=5,
                 )
 
         if key in self._variables and self._variables[key] is not value:
             namespaced = f"{key}_{source_tag}"
-            if namespaced in self._variables and self._variables[namespaced] is not value:
+            if (
+                namespaced in self._variables
+                and self._variables[namespaced] is not value
+            ):
                 warnings.warn(
-                    f"DynaPrompt: Variable '{key}' already exists from a different source. "
-                    f"Both '{key}' and '{namespaced}' already set — skipping. "
+                    f"DynaPrompt: Variable '{key}' already exists from a different "
+                    f"source. Both '{key}' and '{namespaced}' already set — skipping. "
                     "Rename one of your sources to avoid ambiguity.",
                     UserWarning,
                     stacklevel=4,
@@ -198,20 +201,19 @@ class _PromptSettings:
 
     def _register_dict_as_variables(
         self,
-        data: Dict[str, Any],
+        data: dict[str, Any],
         container_key: str,
         source_tag: str,
     ) -> None:
-        """Register *data* as a whole under *container_key* AND each element separately."""
+        """Register *data* as a whole under *container_key* AND each element
+        separately.
+        """
         # Handle environment layering if present
-        is_env_layered = (
-            "default" in data
-            and isinstance(data["default"], dict)
-        )
-        
+        is_env_layered = "default" in data and isinstance(data["default"], dict)
+
         if is_env_layered:
             # Merge 'default' and the current environment key
-            final_data: Dict[str, Any] = {}
+            final_data: dict[str, Any] = {}
             object_merge(final_data, data.get("default", {}))
             env_data = data.get(self._current_env)
             if isinstance(env_data, dict):
@@ -220,9 +222,9 @@ class _PromptSettings:
 
         # 1. Whole object under container key
         self._merge_var(container_key, data, source_tag)
-        
+
         # 2. Each element separately (recursively if dict)
-        def _flatten(d: Dict[str, Any]) -> None:
+        def _flatten(d: dict[str, Any]) -> None:
             for k, v in d.items():
                 self._merge_var(k, v, source_tag)
                 if isinstance(v, dict):
@@ -230,7 +232,7 @@ class _PromptSettings:
 
         _flatten(data)
 
-    def _load_variables(self, variables: Optional[List[Any]]) -> None:
+    def _load_variables(self, variables: list[Any] | None) -> None:
         """Load and merge global template variables from files or dicts.
 
         Each item can be:
@@ -289,12 +291,14 @@ class _PromptSettings:
 
             if suffix == ".json":
                 import json
-                with open(path, "r", encoding="utf-8") as f:
+
+                with open(path, encoding="utf-8") as f:
                     data = json.load(f)
                 file_source_tag = "json"
             elif suffix in (".yaml", ".yml"):
                 import yaml
-                with open(path, "r", encoding="utf-8") as f:
+
+                with open(path, encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 file_source_tag = "yaml"
             elif suffix == ".toml":
@@ -320,19 +324,17 @@ class _PromptSettings:
 
             if not isinstance(data, dict):
                 warnings.warn(
-                    f"DynaPrompt: Variables file '{path.name}' did not produce a dict — skipped.",
+                    f"DynaPrompt: Variables file '{path.name}' did not produce "
+                    "a dict — skipped.",
                     UserWarning,
                     stacklevel=3,
                 )
                 return
 
             # Env-layered file? (has a 'default' key with dict values)
-            is_env_layered = (
-                "default" in data
-                and isinstance(data["default"], dict)
-            )
+            is_env_layered = "default" in data and isinstance(data["default"], dict)
             if is_env_layered:
-                merged: Dict[str, Any] = {}
+                merged: dict[str, Any] = {}
                 object_merge(merged, data.get("default", {}))
                 if self._current_env != "default":
                     object_merge(merged, data.get(self._current_env, {}))
@@ -353,9 +355,9 @@ class _PromptSettings:
         - Module-level classes → ``_schemas`` (existing behaviour) *and* ``_variables``.
         - All other non-private names → ``_variables``.
         """
-        import sys
-        import inspect
         import importlib.util
+        import inspect
+        import sys
 
         spec = importlib.util.spec_from_file_location(path.stem, path)
         if not spec or not spec.loader:
@@ -405,7 +407,7 @@ class _PromptSettings:
         - Collisions after normalization are resolved by appending ``_2``,
           ``_3``, … and a :class:`UserWarning` is emitted.
         """
-        seen: Dict[str, pathlib.Path] = {}  # sanitized_name -> first source path
+        seen: dict[str, pathlib.Path] = {}  # sanitized_name -> first source path
 
         for child in sorted(directory.iterdir()):
             if child.suffix not in _SUPPORTED_SUFFIXES:
@@ -418,7 +420,7 @@ class _PromptSettings:
                 if not stem.startswith(self._file_prefix):
                     continue
                 # Strip prefix so the API name is clean
-                stem = stem[len(self._file_prefix):]
+                stem = stem[len(self._file_prefix) :]
 
             # ── Sanitize ─────────────────────────────────────────────────────
             sanitized = _sanitize_name(stem)
@@ -455,24 +457,34 @@ class _PromptSettings:
     def _load_yaml_schema(self, path: pathlib.Path) -> None:
         """Load a YAML file and register its content as a schema."""
         import yaml
+
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             # Register the entire YAML object under the filename stem
             self._schemas[path.stem] = data
         except Exception as e:
-            warnings.warn(f"DynaPrompt: Failed to load YAML schema from {path}: {e}", UserWarning, stacklevel=2)
+            warnings.warn(
+                f"DynaPrompt: Failed to load YAML schema from {path}: {e}",
+                UserWarning,
+                stacklevel=2,
+            )
 
     def _load_json_schema(self, path: pathlib.Path) -> None:
         """Load a JSON file and register its content as a schema."""
         import json
+
         try:
-            with open(path, "r", encoding="utf-8") as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
             # Register the entire JSON object under the filename stem
             self._schemas[path.stem] = data
         except Exception as e:
-            warnings.warn(f"DynaPrompt: Failed to load JSON schema from {path}: {e}", UserWarning, stacklevel=2)
+            warnings.warn(
+                f"DynaPrompt: Failed to load JSON schema from {path}: {e}",
+                UserWarning,
+                stacklevel=2,
+            )
 
     def _load_python_schemas(self, path: pathlib.Path) -> None:
         """Dynamically load a Python file, registering classes as schemas
@@ -486,7 +498,7 @@ class _PromptSettings:
     def _load_one_file(
         self,
         path: pathlib.Path,
-        override_name: Optional[str] = None,
+        override_name: str | None = None,
     ) -> None:
         """Load a single file.
 
@@ -557,18 +569,17 @@ class _PromptSettings:
         if name not in self._store:
             available = list(self._store.keys())
             raise AttributeError(
-                f"Prompt '{name}' not found. "
-                f"Available prompts: {available}"
+                f"Prompt '{name}' not found. Available prompts: {available}"
             )
 
         data = dict(self._store[name])
         # Resolve parent template for `extends` inheritance
-        parent_template: Optional[str] = None
+        parent_template: str | None = None
         extends = data.get("extends")
         if extends and extends in self._store:
             parent_data = dict(self._store[extends])
             parent_template = parent_data.pop("template", "")
-            
+
             # Deep merge parent config into current data (current data takes precedence)
             merged_data = dict(parent_data)
             object_merge(merged_data, data)
@@ -576,11 +587,13 @@ class _PromptSettings:
 
         template_str = data.pop("template", "")
 
-        # Resolve response_schema string → class (if registered externally)
-        # Supports both "response_schema" and "_response_schema" from frontmatter/metadata
-        schema_name_or_class = data.pop("response_schema", data.pop("_response_schema", None))
+        # Resolve response_schema string → class (if registered externally).
+        # Supports both "response_schema" and "_response_schema" from metadata.
+        schema_name_or_class = data.pop(
+            "response_schema", data.pop("_response_schema", None)
+        )
         response_schema = None
-        
+
         if isinstance(schema_name_or_class, str):
             response_schema = self._schemas.get(schema_name_or_class)
         else:
@@ -606,18 +619,12 @@ class _PromptSettings:
 
         return node
 
-    def get_history(self, name: Optional[str] = None) -> dict:
+    def get_history(self, name: str | None = None) -> dict:
         if name:
             entries = self._history.get(name, [])
-            return [
-                {**src._asdict(), "value": data}
-                for src, data in entries
-            ]
+            return [{**src._asdict(), "value": data} for src, data in entries]
         return {
-            pname: [
-                {**src._asdict(), "value": data}
-                for src, data in entries
-            ]
+            pname: [{**src._asdict(), "value": data} for src, data in entries]
             for pname, entries in self._history.items()
         }
 
@@ -648,19 +655,19 @@ class DynaPrompt:
 
     def __init__(
         self,
-        settings_files: List[Any],
+        settings_files: list[Any],
         environments: bool = True,
-        env: Optional[str] = None,
-        validators: Optional[List[PromptValidator]] = None,
-        file_prefix: Optional[str] = None,
-        variables: Optional[List[Any]] = None,
+        env: str | None = None,
+        validators: list[PromptValidator] | None = None,
+        file_prefix: str | None = None,
+        variables: list[Any] | None = None,
         auto_render: bool = False,
     ):
         """
         Args:
             settings_files: List of file paths or directory paths to load.
                 Directories are scanned for ``.toml``, ``.md``, ``.txt``,
-                ``.py`` (for schemas), ``.json`` (for schemas), and ``.yaml`` (for schemas) files.
+                ``.py``, ``.json``, and ``.yaml`` (for schemas) files.
             environments: Enable environment layering (default ``True``).
             env: Active environment name. Falls back to
                 ``ENV_FOR_DYNAPROMPT`` env-var, then ``"development"``.
@@ -683,10 +690,10 @@ class DynaPrompt:
         self._validators = ValidatorList()
         if validators:
             self._validators.extend(validators)
-        self._hooks: Dict[str, List[Hook]] = {}
-        self.schemas: Dict[str, Any] = {}
+        self._hooks: dict[str, list[Hook]] = {}
+        self.schemas: dict[str, Any] = {}
         self._variables = variables
-        self._wrapped: Optional[_PromptSettings] = None
+        self._wrapped: _PromptSettings | None = None
 
     # ── Lazy setup ────────────────────────────────────────────────────────────
 
@@ -710,33 +717,33 @@ class DynaPrompt:
             raise AttributeError(name)
         if self._wrapped is None:
             self._setup()
-            
+
         # 1. Try to get a prompt
         try:
             return self._wrapped.get(name)
         except AttributeError:
             pass
-            
+
         # 2. Try to get a schema
         if name in self.schemas:
             return self.schemas[name]
-            
+
         raise AttributeError(
             f"'{self.__class__.__name__}' object has no attribute '{name}'. "
             f"Available prompts: {list(self._wrapped._store.keys())}. "
             f"Available schemas: {list(self.schemas.keys())}."
         )
 
-    def __dir__(self) -> List[str]:
+    def __dir__(self) -> list[str]:
         """Enable tab-completion for prompts and schemas."""
         if self._wrapped is None:
             self._setup()
-        
+
         # Standard attributes + prompts + schemas
         std_attrs = super().__dir__()
         prompts = list(self._wrapped._store.keys())
         schemas = list(self.schemas.keys())
-        
+
         return sorted(set(std_attrs + prompts + schemas))
 
     def get(self, name: str) -> PromptNode:
@@ -789,7 +796,7 @@ class DynaPrompt:
 
     # ── Hooks ─────────────────────────────────────────────────────────────────
 
-    def add_hook(self, event: str, name_or_hook: Any, hook: Optional[Hook] = None) -> None:
+    def add_hook(self, event: str, name_or_hook: Any, hook: Hook | None = None) -> None:
         """
         Register a lifecycle hook.
 
@@ -818,15 +825,17 @@ class DynaPrompt:
 
     def register(self, name: str, schema=None):
         """Decorator to register a Pydantic schema for a named prompt."""
+
         def decorator(func):
             if schema:
                 self.schemas[name] = schema
             return func
+
         return decorator
 
     # ── Inspection ────────────────────────────────────────────────────────────
 
-    def inspect(self, name: Optional[str] = None) -> dict:
+    def inspect(self, name: str | None = None) -> dict:
         """Return full loading history. Mirrors Dynaconf's inspect_settings()."""
         if self._wrapped is None:
             self._setup()
