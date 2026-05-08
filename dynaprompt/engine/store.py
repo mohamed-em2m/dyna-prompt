@@ -79,7 +79,24 @@ class PromptStore:
             object_merge(merged_data, data)
             data = merged_data
 
+        import os
+
+        if (
+            parent_template
+            and isinstance(parent_template, str)
+            and os.path.isfile(parent_template)
+        ):
+            with open(parent_template, encoding="utf-8") as f:
+                parent_template = f.read()
+
         template_str = data.pop("template", "")
+        if (
+            template_str
+            and isinstance(template_str, str)
+            and os.path.isfile(template_str)
+        ):
+            with open(template_str, encoding="utf-8") as f:
+                template_str = f.read()
 
         # Schema resolution
         schema_name_or_class = data.pop(
@@ -91,6 +108,28 @@ class PromptStore:
             else schema_name_or_class
         )
 
+        node_variables = data.pop("variables", None)
+        import copy
+
+        merged_vars = copy.deepcopy(context.get("variables", {}))
+
+        if node_variables:
+            from ..utils import object_merge
+
+            if isinstance(node_variables, dict):
+                object_merge(merged_vars, node_variables)
+            elif isinstance(node_variables, str) and os.path.isfile(node_variables):
+                if node_variables.endswith(".json"):
+                    import json
+
+                    with open(node_variables, encoding="utf-8") as f:
+                        object_merge(merged_vars, json.load(f))
+                elif node_variables.endswith((".yaml", ".yml")):
+                    import yaml
+
+                    with open(node_variables, encoding="utf-8") as f:
+                        object_merge(merged_vars, yaml.safe_load(f) or {})
+
         node = PromptNode(
             name=name,
             text=template_str,
@@ -98,7 +137,7 @@ class PromptStore:
             response_schema=response_schema,
             parent_template=parent_template,
             history=self._history.get(name, []),
-            variables=context["variables"],
+            variables=merged_vars,
             validators=context["validators"],
             hooks=context["hooks"],
             current_env=context["current_env"],

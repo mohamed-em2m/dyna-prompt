@@ -80,25 +80,56 @@ Since Dynaconf handles strings, why a new library? DynaPrompt adds **prompt-spec
 
 ## 🛠 Usage
 
-### Loading from a Directory
-DynaPrompt excels at organizing templates as files.
+### Loading from a Directory & Namespaces
+DynaPrompt excels at organizing templates as files. When you load files from a nested directory structure (e.g., `examples/google/gemini.md`), it automatically builds a nested namespace.
 
 ```python
 from dynaprompt import DynaPrompt
 
 prompts = DynaPrompt(
-    settings_files=["examples/"], # Scans for .md, .toml, .py schemas
+    settings_files=["examples/"], # Scans for .md, .toml, .py schemas recursively
     environments=True
 )
 
-# Accessing analyzer.md template
-rendered = prompts.analyzer.render(user_name="Emam", text="DynaPrompt is great!")
+# Accessing a nested prompt using intuitive dot notation:
+rendered = prompts.google.gemini.render(user_name="Emam", text="DynaPrompt is great!")
 
 print(rendered.text)
 print(rendered.config["model"]) # "gemini-1.5-pro" (from frontmatter or .toml)
 
 # Partial update: keeps "user_name" but changes "text"
-updated = prompts.analyzer.rerender(text="It's really fast.")
+updated = prompts.google.gemini.rerender(text="It's really fast.")
+```
+
+### Auto-Exporting Prompts to TOML
+You can automatically export your entire loaded prompt structure into a central `pyprompts.toml` file. This acts as an interface for users to easily view or override prompt templates and settings.
+
+```python
+# Pass auto_export=True, or auto_export="custom_path.toml"
+prompts = DynaPrompt(settings_files=["examples/"], auto_export=True)
+
+# Access a prompt to trigger the lazy load and export the file
+_ = prompts.google.gemini
+```
+
+### File-Based Templates and Variables
+Instead of writing long strings in your configuration files, you can reference external files directly in your TOML config. DynaPrompt will automatically resolve and load their contents!
+
+```toml
+[default.my_prompt]
+# Read the prompt text directly from a file
+template = "path/to/external_template.md"
+
+# Load default variables from a JSON or YAML file
+variables = "path/to/default_vars.json"
+```
+
+You can also define prompt-specific variables directly inline:
+```toml
+[default.my_prompt]
+template = "Hello {{ username }}! Your tier is {{ tier }}."
+[default.my_prompt.variables]
+tier = "Premium"
 ```
 
 ### Schema Integration
