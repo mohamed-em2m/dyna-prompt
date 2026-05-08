@@ -11,8 +11,9 @@ The main lazy-loading settings manager.
 - `validators`: (list) List of `PromptValidator` instances.
 - `file_prefix`: (str) Optional prefix to filter files (e.g. `gpt_`).
 - `variables`: (list) List of paths to `.json`/`.yaml`/`.toml` files or direct dictionaries to load into the global context.
-- `auto_render`: (bool) If `True`, renders nested variables within templates during initialization.
+- `auto_render`: (bool) If `True`, renders nested variables within templates during initialization. Default `True`.
 - `auto_export`: (bool|str) If `True` (or a path), automatically exports the loaded prompt structure to a TOML file on first access.
+- `structure_mode`: (bool) If `True`, builds nested namespaces from directory structure. Default `True`.
 
 ### Attribute Access
 Access prompts and schemas directly:

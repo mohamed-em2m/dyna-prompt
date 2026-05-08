@@ -30,23 +30,34 @@ pip install dynaprompt
 uv add dynaprompt
 ```
 
-1. Create a `prompts.toml`:
+1. **Create a `prompts.toml`** (or a directory of `.md` files):
 ```toml
 [default.greeting]
 template = "Hello {{ name }}! You are a helpful assistant."
+model = "gpt-3.5-turbo"
 
 [production.greeting]
 template = "Hello {{ name }}! You are a professional consultant."
+model = "gpt-4o"
 ```
 
-2. Use it in Python:
+2. **Use it in Python**:
 ```python
 from dynaprompt import DynaPrompt
 
+# 1. Initialize (zero I/O happens here)
 prompts = DynaPrompt(settings_files=["prompts.toml"])
 
-# Renders: "Hello Emam! You are a helpful assistant."
-print(prompts.greeting.render(name="Emam").text)
+# 2. Render default environment
+rendered = prompts.greeting.render(name="Emam")
+print(rendered.text)
+# -> "Hello Emam! You are a helpful assistant."
+
+# 3. Switch environments seamlessly
+with prompts.using_env("production"):
+    prod_rendered = prompts.greeting.render(name="Emam")
+    print(prod_rendered.text)
+    # -> "Hello Emam! You are a professional consultant."
 ```
 
 ---

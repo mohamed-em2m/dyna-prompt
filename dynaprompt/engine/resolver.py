@@ -7,8 +7,9 @@ from typing import Any
 class FileResolver:
     """Handles file discovery and path resolution for prompts and schemas."""
 
-    def __init__(self, file_prefix: str | None = None):
+    def __init__(self, file_prefix: str | None = None, structure_mode: bool = True):
         self.file_prefix = file_prefix
+        self.structure_mode = structure_mode
 
     def resolve_all(self, settings_files: list[Any]) -> list[pathlib.Path | dict]:
         """Convert input list into absolute paths and explicit file markers."""
@@ -42,7 +43,11 @@ class FileResolver:
                 continue
 
             rel_path = child.relative_to(directory)
-            parts = rel_path.with_suffix("").parts
+            if self.structure_mode:
+                parts = rel_path.with_suffix("").parts
+            else:
+                parts = (child.stem,)
+
             stem = ".".join(parts)
 
             if self.file_prefix:

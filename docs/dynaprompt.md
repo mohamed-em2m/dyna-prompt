@@ -42,6 +42,9 @@ prompts/
 ```
 Access them as: `prompts.auth.login` or `prompts.support.chat`.
 
+> [!TIP]
+> Use `structure_mode=False` during initialization if you want to flatten the namespace and ignore folder names.
+
 ---
 
 ## 🚀 Key Features

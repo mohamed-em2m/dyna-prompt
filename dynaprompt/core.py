@@ -76,9 +76,12 @@ class _PromptSettings:
         file_prefix: str | None = None,
         schemas: dict[str, Any] | None = None,
         variables: list[Any] | None = None,
-        auto_render: bool = False,
+        auto_render: bool = True,
+        structure_mode: bool = True,
     ):
-        self._resolver = FileResolver(file_prefix=file_prefix)
+        self._resolver = FileResolver(
+            file_prefix=file_prefix, structure_mode=structure_mode
+        )
         self._registry = VariableRegistry(auto_render=auto_render, schemas=schemas)
         self._layer = EnvLayer(current_env=current_env)
         self._store = PromptStore(cache_enabled=True)
@@ -252,8 +255,9 @@ class DynaPrompt:
         validators: list[PromptValidator] | None = None,
         file_prefix: str | None = None,
         variables: list[Any] | None = None,
-        auto_render: bool = False,
+        auto_render: bool = True,
         auto_export: str | bool = False,
+        structure_mode: bool = True,
     ):
         self._settings_files = settings_files
         self._environments = environments
@@ -261,6 +265,7 @@ class DynaPrompt:
         self._file_prefix = file_prefix
         self._auto_render = auto_render
         self._auto_export = auto_export
+        self._structure_mode = structure_mode
         self._validators = ValidatorList()
         if validators:
             self._validators.extend(validators)
@@ -277,6 +282,7 @@ class DynaPrompt:
             schemas=self.schemas,
             variables=self._variables,
             auto_render=self._auto_render,
+            structure_mode=self._structure_mode,
         )
         self._wrapped._validators = self._validators
         self._wrapped._hooks = self._hooks
