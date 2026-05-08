@@ -45,6 +45,10 @@ dependencies = [
     "pydantic>=2.0.0",
 ]
 keywords = [
+    "prompt",
+    "prompts",
+    "agents",
+    "agentic",
     "prompt-management",
     "prompt-engineering",
     "dynamic-prompts",
@@ -63,7 +67,7 @@ keywords = [
     "anthropic",
     "gemini",
     "llama",
-    "structured-data",
+    "structured-output",
     "python",
 ]
 [project.urls]
