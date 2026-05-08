@@ -245,7 +245,7 @@ class TestAutoRenderVariables:
         dp = DynaPrompt(
             settings_files=[],
             variables=variables,
-            # auto_render=False by default
+            auto_render=False,
         )
         dp.inspect()
         vars_ = dp._wrapped._variables
