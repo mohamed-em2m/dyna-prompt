@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.4] - 2026-05-08
+## [0.2.0] - 2026-05-08
 
 ### Added
 - **`structure_mode` Parameter**: New initialization parameter (defaults to `True`) that enables building nested namespaces from directory structures (e.g., `prompts.folder.file`).
