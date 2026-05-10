@@ -343,6 +343,23 @@ class DynaPrompt:
         schemas = list(self.schemas.keys())
         return sorted(set(std_attrs + list(top_level_keys) + schemas))
 
+    def __iter__(self):
+        if self._wrapped is None:
+            self._setup()
+        return iter(self._wrapped._store)
+
+    def keys(self) -> list[str]:
+        if self._wrapped is None:
+            self._setup()
+        return list(self._wrapped._store.keys())
+
+    @property
+    def prompts(self) -> dict[str, PromptNode]:
+        """Returns all loaded prompts as a dictionary mapping name to PromptNode."""
+        if self._wrapped is None:
+            self._setup()
+        return {k: self.get(k) for k in self._wrapped._store.keys()}
+
     def get(self, name: str) -> PromptNode:
         return self.__getattr__(name)
 
