@@ -47,11 +47,14 @@ class TomlLoader(PromptLoader):
             raw = tomllib.load(f)
 
         result: dict[str, dict[str, Any]] = {}
-        for env_key, prompts in raw.items():
-            if not isinstance(prompts, dict):
+        for env_key, env_data in raw.items():
+            if not isinstance(env_data, dict):
                 continue
             result[env_key] = {}
-            for prompt_name, data in prompts.items():
+            # Flatten the nested dictionary from TOML to restore dotted names
+            flat_prompts = self._flatten_toml(env_data)
+
+            for prompt_name, data in flat_prompts.items():
                 if isinstance(data, dict):
                     data = self._resolve_paths(data, path.parent)
                     result[env_key][prompt_name] = data
@@ -61,6 +64,31 @@ class TomlLoader(PromptLoader):
     # ------------------------------------------------------------------
     # Path resolution helpers
     # ------------------------------------------------------------------
+
+    def _flatten_toml(self, d: dict, parent: str = "") -> dict:
+        """Flatten nested dicts from unquoted TOML keys like [env.a.b]."""
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent}.{k}" if parent else k
+            # Heuristic: if it's a dict and has no known prompt keys, it's a namespace
+            if (
+                isinstance(v, dict)
+                and not any(
+                    fk in v
+                    for fk in (
+                        "template",
+                        "model",
+                        "extends",
+                        "version",
+                        "response_schema",
+                    )
+                )
+                and not any(fk.startswith("_") for fk in v)
+            ):
+                items.extend(self._flatten_toml(v, new_key).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
 
     def _resolve_paths(
         self, data: dict[str, Any], base_dir: pathlib.Path
