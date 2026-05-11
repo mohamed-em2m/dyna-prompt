@@ -1,40 +1,67 @@
 site_name: DynaPrompt
-site_description: Dynamic prompt management and configuration library for LLM applications.
+site_description: Dynamic prompt management and configuration library for LLM applications — lazy-loading, environment-aware, and Jinja2-powered.
 site_url: https://mohamed-em2m.github.io/dynaprompt/
+site_author: Mohamed Em2m
+copyright: Copyright &copy; 2024 - 2026 Mohamed Em2m
 
 theme:
   name: material
+  logo: assets/logo.png
+  favicon: assets/logo.png
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
+      primary: deep purple
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: black
+      primary: deep purple
       accent: indigo
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
+    - navigation.expand
     - navigation.top
     - navigation.tracking
+    - navigation.indexes
+    - navigation.footer
     - search.suggest
     - search.highlight
+    - search.share
     - content.code.copy
     - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
 
 repo_name: mohamed-em2m/dynaprompt
 repo_url: https://github.com/mohamed-em2m/dynaprompt
 edit_uri: edit/main/docs/
 
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/mohamed-em2m/dynaprompt
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/dynaprompt/
+  version:
+    provider: mike
+
 markdown_extensions:
   - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
@@ -43,15 +70,25 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.snippets
   - pymdownx.tabbed:
       alternate_style: true
+      combine_header_slug: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - toc:
       permalink: true
+      title: On this page
 
 plugins:
-  - search
+  - search:
+      lang: en
   - mkdocstrings:
       handlers:
         python:
@@ -59,9 +96,20 @@ plugins:
           options:
             show_root_heading: true
             show_source: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            docstring_style: google
+            merge_init_into_class: true
 
 nav:
   - Home: index.md
-  - Guide: dynaprompt.md
-  - Schemas & Validation: schemas.md
+  - Getting Started:
+      - Installation & Quick Start: dynaprompt.md
+      - Schemas & Validation: schemas.md
+  - Advanced:
+      - Async Support: advanced/async.md
+      - Hooks & Validation: advanced/hooks.md
+      - Environment Layering: advanced/environments.md
+      - Debugging & Tracing: advanced/debugging.md
   - API Reference: api_reference.md
+  - Changelog: changelog.md
