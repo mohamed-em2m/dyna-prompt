@@ -78,6 +78,7 @@ class _PromptSettings:
         variables: list[Any] | None = None,
         auto_render: bool = True,
         structure_mode: bool = True,
+        exclude_files: list[pathlib.Path] | None = None,
     ):
         self._resolver = FileResolver(
             file_prefix=file_prefix, structure_mode=structure_mode
@@ -85,6 +86,7 @@ class _PromptSettings:
         self._registry = VariableRegistry(auto_render=auto_render, schemas=schemas)
         self._layer = EnvLayer(current_env=current_env)
         self._store = PromptStore(cache_enabled=True)
+        self._exclude_files = [f.resolve() for f in (exclude_files or [])]
 
         self._schemas = schemas if schemas is not None else {}
         self._raw_data: dict[str, dict[str, Any]] = {}
@@ -112,12 +114,16 @@ class _PromptSettings:
                 continue
 
             path = item
+            if path.resolve() in self._exclude_files:
+                continue
+
             if path.is_dir():
                 self._load_dir(path)
                 # Companion TOML
                 companion = (path.parent / f"{path.name}.toml").resolve()
                 if companion.exists() and companion not in explicit_files:
-                    self._load_one_file(companion)
+                    if companion not in self._exclude_files:
+                        self._load_one_file(companion)
             elif path.exists():
                 if path.suffix == ".py":
                     self._load_python_schemas(path)
@@ -139,6 +145,9 @@ class _PromptSettings:
     def _load_dir(self, directory: pathlib.Path):
         files_to_load = self._resolver.scan_directory(directory, _SUPPORTED_SUFFIXES)
         for child, sanitized in files_to_load:
+            if child.resolve() in self._exclude_files:
+                continue
+
             if child.suffix == ".py":
                 self._load_python_schemas(child)
             elif child.suffix == ".json":
@@ -280,6 +289,20 @@ class DynaPrompt:
         self._variables = variables
         self._wrapped: _PromptSettings | None = None
 
+        # Capture caller's file to avoid self-loading/infinite loops
+        import inspect
+
+        try:
+            # We skip frames that are inside dynaprompt
+            stack = inspect.stack()
+            self._caller_file = None
+            for frame in stack:
+                if "dynaprompt" not in frame.filename:
+                    self._caller_file = pathlib.Path(frame.filename).resolve()
+                    break
+        except Exception:
+            self._caller_file = None
+
     def _setup(self) -> None:
         self._wrapped = _PromptSettings(
             settings_files=self._settings_files,
@@ -289,6 +312,7 @@ class DynaPrompt:
             variables=self._variables,
             auto_render=self._auto_render,
             structure_mode=self._structure_mode,
+            exclude_files=[self._caller_file] if self._caller_file else None,
         )
         self._wrapped._validators = self._validators
         self._wrapped._hooks = self._hooks
