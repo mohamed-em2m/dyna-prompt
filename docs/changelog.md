@@ -4,6 +4,14 @@ All notable changes to this project will be documented here.
 
 ---
 
+## [0.3.6] — 2026-05-11
+
+### :sparkles: Added
+- **Dot-Notation Variables**: Variables in `PromptNode` can now be accessed directly using dot notation (e.g., `node.variables.MyVariable`).
+- **Pydantic Auto-Detection**: DynaPrompt now automatically detects if a Pydantic schema is passed in the variables and referenced in the template. If so, it automatically assigns it as the `response_schema` for the prompt, eliminating the need to explicitly define it in the markdown frontmatter in most cases.
+
+---
+
 ## [0.3.5] — 2026-05-11
 
 ### :bug: Fixed

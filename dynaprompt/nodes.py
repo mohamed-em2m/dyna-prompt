@@ -74,6 +74,15 @@ class RenderedPrompt:
         return json.dumps(self.schema_dict, indent=2)
 
 
+class VariableDict(dict):
+    """A dictionary that allows dot-notation access to its keys."""
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self:
+            return self[name]
+        raise AttributeError(f"'VariableDict' object has no attribute '{name}'")
+
+
 class PromptNode:
     """
     Represents a single parsed prompt. Supports fluent config overrides and
@@ -101,13 +110,31 @@ class PromptNode:
         self.response_schema = response_schema
         self._parent_template = parent_template
         self._history = history or []
-        self.variables = variables or {}
+        self.variables = VariableDict(variables or {})
         self._validators = validators or ValidatorList()
         self._hooks = hooks or {}
         self._current_env = current_env
         self._auto_render = auto_render
         self._overrides: dict[str, Any] = {}
         self.bound_kwargs: dict[str, Any] = {}
+
+        if self.response_schema is None:
+            try:
+                from pydantic import BaseModel
+
+                # Auto-detect Pydantic schemas referenced in the template text
+                pydantic_models = [
+                    v
+                    for k, v in self.variables.items()
+                    if isinstance(v, type)
+                    and issubclass(v, BaseModel)
+                    and k in self.raw_template
+                ]
+                if len(pydantic_models) == 1:
+                    self.response_schema = pydantic_models[0]
+            except ImportError:
+                pass
+
         self._setup_template()
 
     def _setup_template(self) -> None:

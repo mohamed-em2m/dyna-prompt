@@ -2,10 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.3.5] - 2026-05-11
+## [0.3.7] - 2026-05-11
+
+### Added
+- **Pydantic Auto-Detection Enhancement**: Improved Pydantic schema auto-detection to handle cases where the schema is imported within a Python file located in the `settings_files` directory. The system now automatically registers Pydantic classes found in these files, allowing them to be referenced directly by name in the markdown frontmatter (e.g., `response_schema: MyPydanticClass`).
 
 ### Fixed
-- **Python Variable Stability**: Fixed a crash (`TypeError: cannot pickle 'module' object`) when loading Python files that contain standard imports (e.g. `import math`). Modules are now automatically excluded from the variable registry.
+- **Auto-Render Locking**: Fixed a regression where enabling `auto_render` would "lock" the template and prevent subsequent overrides in `.render()` calls.
 
 ## [0.3.4] - 2026-05-11
 
