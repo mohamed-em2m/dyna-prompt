@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2026-05-11
+
+### Added
+- **Introspection Methods**: Added `keys()`, `__iter__`, and a `.prompts` property to `DynaPrompt` for easier exploration of loaded prompts.
+
+### Fixed
+- **Infinite Loop Protection**: Added automatic detection and exclusion of the caller script from the scanning process. This prevents infinite recursion when passing `.` or the script's own path as a settings directory.
+- **Python Module Loading**: Directory scanning now automatically skips `__init__.py` files to avoid relative import errors when loading Python-based schemas or variables.
+
+
 ## [0.3.0] - 2026-05-10
 
 ### Added
