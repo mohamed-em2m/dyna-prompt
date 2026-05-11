@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.3.1] - 2026-05-11
+## [0.3.3] - 2026-05-11
 
 ### Added
 - **Introspection Methods**: Added `keys()`, `__iter__`, and a `.prompts` property to `DynaPrompt` for easier exploration of loaded prompts.
