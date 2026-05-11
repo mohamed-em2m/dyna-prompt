@@ -237,7 +237,8 @@ class VariableRegistry:
                     if inspect.isclass(obj):
                         self._schemas[name] = obj
 
-                    self.set_var(name, obj, "py")
+                    if not inspect.ismodule(obj):
+                        self.set_var(name, obj, "py")
         finally:
             sys.path.pop(0)
 
